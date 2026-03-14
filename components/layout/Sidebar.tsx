@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { logoutSession } from '../../lib/auth';
 
 type NavItem = {
   label: string;
@@ -42,7 +44,9 @@ function DotIcon() {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, permissions } = useAuthStore();
+  const router = useRouter();
+  const { user, permissions, clearAuth } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const hasAnyPermission = (required: string[]) => required.some((p) => permissions.includes(p));
 
@@ -54,6 +58,22 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   const workspaceId = `#WD${user?.id?.slice(0, 8).toUpperCase() || '12446875'}`;
+
+  async function handleLogout() {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    try {
+      await logoutSession();
+    } catch {
+      // Still clear local session and navigate out even if server logout fails.
+    } finally {
+      clearAuth();
+      router.replace('/login');
+    }
+  }
 
   return (
     <aside className="obliq-sidebar" aria-label="Workspace Sidebar">
@@ -126,9 +146,14 @@ export default function Sidebar() {
           <DotIcon />
           Help center
         </button>
-        <button type="button" className="obliq-footer-btn">
+        <button
+          type="button"
+          className="obliq-footer-btn obliq-footer-btn-danger"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+        >
           <DotIcon />
-          Settings
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
         </button>
       </div>
     </aside>

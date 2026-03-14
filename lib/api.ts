@@ -132,6 +132,10 @@ export const usersApi = {
     const { data } = await api.post<User>('/users', payload);
     return data;
   },
+  async createUser(payload: CreateUserRequest) {
+    const { data } = await api.post<User>('/users', payload);
+    return data;
+  },
   async getById(userId: string) {
     const { data } = await api.get<User>(`/users/${userId}`);
     return data;
@@ -158,10 +162,16 @@ export const permissionsApi = {
     return data;
   },
   async grant(payload: PermissionMutationRequest) {
-    await api.post('/permissions/grant', payload);
+    const { data } = await api.post('/permissions/grant', payload);
+    return data;
+  },
+  async grantPermission(payload: PermissionMutationRequest) {
+    const { data } = await api.post('/permissions/grant', payload);
+    return data;
   },
   async revoke(payload: PermissionMutationRequest) {
-    await api.delete('/permissions/revoke', { data: payload });
+    const { data } = await api.delete('/permissions/revoke', { data: payload });
+    return data;
   },
 };
 
@@ -262,6 +272,26 @@ export const settingsApi = {
     const { data } = await api.patch<SettingsResponse>('/settings', payload);
     return data;
   },
+};
+
+// Convenience groups when you only want explicit POST/PATCH endpoints.
+export const postApi = {
+  login: (payload: LoginRequest) => authApi.login(payload),
+  refresh: () => authApi.refresh(),
+  logout: () => authApi.logout(),
+  createUser: (payload: CreateUserRequest) => usersApi.createUser(payload),
+  grantPermission: (payload: PermissionMutationRequest) => permissionsApi.grantPermission(payload),
+  createTask: (payload: TaskUpsertRequest) => tasksApi.create(payload),
+  createLead: (payload: LeadUpsertRequest) => leadsApi.create(payload),
+};
+
+export const patchApi = {
+  updateUserStatus: (userId: string, status: UserStatus) => usersApi.updateStatus(userId, status),
+  updateTask: (taskId: string, payload: TaskUpsertRequest) => tasksApi.update(taskId, payload),
+  completeTask: (taskId: string) => tasksApi.complete(taskId),
+  updateLead: (leadId: string, payload: LeadUpsertRequest) => leadsApi.update(leadId, payload),
+  assignLead: (leadId: string, payload: AssignLeadRequest) => leadsApi.assign(leadId, payload),
+  updateSettings: (payload: Record<string, unknown>) => settingsApi.update(payload),
 };
 
 export default api;

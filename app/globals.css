@@ -231,6 +231,23 @@ body {
 
 .obliq-footer-btn:hover { background: #ece0d4; }
 
+.obliq-footer-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.obliq-footer-btn-danger {
+  color: #7b3a2a;
+}
+
+.obliq-footer-btn-danger .obliq-nav-dot {
+  border-color: #b16c5b;
+}
+
+.obliq-footer-btn-danger:hover {
+  background: #eddcd0;
+}
+
 .obliq-content-wrap {
   padding: 10px 14px 14px;
   min-width: 980px;
