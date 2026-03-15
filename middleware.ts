@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const PUBLIC_ROUTES = ['/login', '/forbidden'];
+const AUTH_COOKIE_CANDIDATES = ['refresh_token', 'refreshToken', 'access_token'];
 
 const ROUTE_PERMISSIONS: Record<string, string> = {
   '/dashboard': 'dashboard:read',
@@ -26,9 +27,9 @@ export function middleware(request: NextRequest) {
   }
 
 
-  const hasRefreshToken = request.cookies.has('refresh_token');
+  const hasAuthCookie = AUTH_COOKIE_CANDIDATES.some((cookieName) => request.cookies.has(cookieName));
 
-  if (!hasRefreshToken) {
+  if (!hasAuthCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

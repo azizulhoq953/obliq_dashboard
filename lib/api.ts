@@ -1,4 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios';
+import { API_BASE_URL } from './config';
 import type {
   AssignLeadRequest,
   AuditListResponse,
@@ -22,8 +23,34 @@ import type {
   UserStatus,
 } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 const ACCESS_TOKEN_KEY = 'access_token';
+
+function extractAccessToken(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const direct = [record.accessToken, record.access_token, record.token].find(
+    (value): value is string => typeof value === 'string' && value.trim().length > 0,
+  );
+
+  if (direct) {
+    return direct;
+  }
+
+  for (const nestedKey of ['data', 'result', 'payload']) {
+    const nested = record[nestedKey];
+    if (nested && typeof nested === 'object') {
+      const nestedToken = extractAccessToken(nested);
+      if (nestedToken) {
+        return nestedToken;
+      }
+    }
+  }
+
+  return null;
+}
 
 function isBrowser() {
   return typeof window !== 'undefined';
@@ -38,6 +65,10 @@ export function getStoredAccessToken(): string | null {
 
 export function setStoredAccessToken(token: string) {
   if (!isBrowser()) {
+    return;
+  }
+  if (!token) {
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     return;
   }
   sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
@@ -67,25 +98,35 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+    const hasStoredToken = !!getStoredAccessToken();
+    const requestAuthHeader = String(original?.headers?.Authorization || '').trim();
+    const hasAuthContext = hasStoredToken || requestAuthHeader.length > 0;
     const canRetry =
       !!original &&
       err.response?.status === 401 &&
+      hasAuthContext &&
       !original._retry &&
-      !String(original.url || '').includes('/auth/refresh');
+      !String(original.url || '').includes('/auth/refresh') &&
+      !String(original.url || '').includes('/auth/login');
 
     if (canRetry && original) {
       original._retry = true;
       try {
-        const { data } = await axios.post<RefreshResponse>(
+        const { data } = await axios.post<unknown>(
           `${API_BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true },
         );
+        const refreshedToken = extractAccessToken(data) || getStoredAccessToken();
 
-        setStoredAccessToken(data.accessToken);
+        if (!refreshedToken) {
+          throw new Error('Missing access token after refresh');
+        }
+
+        setStoredAccessToken(refreshedToken);
         original.headers = {
           ...(original.headers || {}),
-          Authorization: `Bearer ${data.accessToken}`,
+          Authorization: `Bearer ${refreshedToken}`,
         };
         return api(original);
       } catch {
@@ -102,14 +143,25 @@ api.interceptors.response.use(
 
 export const authApi = {
   async login(payload: LoginRequest) {
-    const { data } = await api.post<LoginResponse>('/auth/login', payload);
-    setStoredAccessToken(data.accessToken);
-    return data;
+    const { data } = await api.post<unknown>('/auth/login', payload);
+    const accessToken = extractAccessToken(data);
+
+    if (!accessToken) {
+      throw new Error('Login succeeded but access token is missing in response.');
+    }
+
+    setStoredAccessToken(accessToken);
+    return { accessToken } as LoginResponse;
   },
   async refresh() {
-    const { data } = await api.post<RefreshResponse>('/auth/refresh');
-    setStoredAccessToken(data.accessToken);
-    return data;
+    const { data } = await api.post<unknown>('/auth/refresh');
+    const accessToken = extractAccessToken(data) || getStoredAccessToken() || '';
+
+    if (accessToken) {
+      setStoredAccessToken(accessToken);
+    }
+
+    return { accessToken } as RefreshResponse;
   },
   async logout() {
     await api.post('/auth/logout');
@@ -148,7 +200,7 @@ export const usersApi = {
 
 export const permissionsApi = {
   async my(accessToken?: string) {
-    const { data } = await api.get<string[]>('/permissions/my', {
+    const { data } = await api.get<unknown>('/permissions/my', {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     });
     return data;

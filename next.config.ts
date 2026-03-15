@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
-
-const backendOrigin = process.env.BACKEND_ORIGIN || process.env.NEXT_PUBLIC_BACKEND_ORIGIN || "http://192.168.2.38:3005";
+import { BACKEND_ORIGIN } from './lib/config';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -9,7 +8,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${backendOrigin}/api/:path*`,
+        destination: `${BACKEND_ORIGIN}/api/:path*`,
       },
     ];
   },
