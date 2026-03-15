@@ -45,16 +45,21 @@ export default function LoginPage() {
         .login-page {
           min-height: 100vh;
           width: 100%;
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          padding: 16px;
           background: #fdf9f7;
           font-family: 'Inter', -apple-system, sans-serif;
           -webkit-font-smoothing: antialiased;
+          overflow: hidden;
         }
 
         /* ── Left panel ────────────────────────────────── */
         .left-panel {
           width: 100%;
-          max-width: 640px;
+          max-width: none;
+          min-height: calc(100vh - 32px);
           display: flex;
           flex-direction: column;
           padding: 36px 48px;
@@ -298,12 +303,22 @@ export default function LoginPage() {
 
         /* ── Right panel ───────────────────────────────── */
         .right-panel {
-          flex: 1;
           position: relative;
           overflow: hidden;
           border-radius: 24px;
-          margin: 16px 16px 16px 0;
           min-height: calc(100vh - 32px);
+          animation: slideInRightPanel 0.6s ease-out both;
+        }
+
+        @keyframes slideInRightPanel {
+          from {
+            opacity: 0;
+            transform: translateX(72px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
 
         .wavy-bg {
@@ -575,8 +590,17 @@ export default function LoginPage() {
 
         /* ── Responsive ────────────────────────────────── */
         @media (max-width: 1024px) {
+          .login-page {
+            display: block;
+            padding: 0;
+          }
           .right-panel { display: none; }
-          .left-panel { max-width: 100%; padding: 32px 24px; }
+          .left-panel {
+            max-width: 100%;
+            min-height: 100vh;
+            border-radius: 0;
+            padding: 32px 24px;
+          }
           .form-container { padding: 20px 0; }
         }
         @media (max-width: 480px) {
