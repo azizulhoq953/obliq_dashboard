@@ -25,8 +25,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // The actual permission check happens server-side via API
-  // Here we just ensure the user has a session cookie
+
   const hasRefreshToken = request.cookies.has('refresh_token');
 
   if (!hasRefreshToken) {
